@@ -9,6 +9,58 @@ Write-Host "  Starting CMMS Application" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
+# Verify installation
+$backendPath = Join-Path $ScriptDir "backend"
+$frontendPath = Join-Path $ScriptDir "frontend"
+$venvPython = Join-Path $backendPath "venv\Scripts\python.exe"
+$nodeModules = Join-Path $frontendPath "node_modules"
+
+Write-Host "Checking installation..." -ForegroundColor Yellow
+
+# Check backend venv
+if (-not (Test-Path $venvPython)) {
+    Write-Host "[ERROR] Python virtual environment not found!" -ForegroundColor Red
+    Write-Host "Expected: $venvPython" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "Please run the installer first: install\install.ps1" -ForegroundColor Yellow
+    Read-Host "Press Enter to exit"
+    exit 1
+}
+Write-Host "  [OK] Python venv found" -ForegroundColor Green
+
+# Check node_modules
+if (-not (Test-Path $nodeModules)) {
+    Write-Host "[ERROR] Node modules not found!" -ForegroundColor Red
+    Write-Host "Expected: $nodeModules" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "Please run the installer first: install\install.ps1" -ForegroundColor Yellow
+    Read-Host "Press Enter to exit"
+    exit 1
+}
+Write-Host "  [OK] Node modules found" -ForegroundColor Green
+
+# Check .env
+$envFile = Join-Path $backendPath ".env"
+if (-not (Test-Path $envFile)) {
+    Write-Host "[WARN] .env not found, creating default..." -ForegroundColor Yellow
+    $dataDir = Join-Path $ScriptDir "data"
+    if (-not (Test-Path $dataDir)) {
+        New-Item -ItemType Directory -Path $dataDir -Force | Out-Null
+    }
+    $secret = -join ((65..90) + (97..122) + (48..57) | Get-Random -Count 32 | ForEach-Object {[char]$_})
+    $dbPath = ($dataDir -replace '\\', '/') + "/cmms.db"
+    @"
+SECRET_KEY=$secret
+DATABASE_URL=sqlite+aiosqlite:///$dbPath
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=480
+ENVIRONMENT=production
+"@ | Out-File $envFile -Encoding utf8
+    Write-Host "  [OK] Created .env" -ForegroundColor Green
+}
+
+Write-Host ""
+
 # Check if already running
 $backendRunning = Get-Process -Name "python" -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -like "*uvicorn*" }
 $frontendRunning = Get-Process -Name "node" -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -like "*vite*" }
@@ -23,7 +75,6 @@ if ($backendRunning -or $frontendRunning) {
 
 # Start Backend
 Write-Host "Starting backend server..." -ForegroundColor Yellow
-$backendPath = Join-Path $ScriptDir "backend"
 $backendProcess = Start-Process -FilePath "powershell" -ArgumentList @(
     "-NoExit",
     "-Command",

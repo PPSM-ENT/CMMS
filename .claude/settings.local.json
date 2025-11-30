@@ -10,7 +10,8 @@
       "Bash(cmd /c \"gh --version\")",
       "Bash(\"C:\\Program Files\\GitHub CLI\\gh.exe\" auth status)",
       "Bash(\"C:\\Program Files\\GitHub CLI\\gh.exe\" auth login --web --git-protocol https)",
-      "Bash(\"C:\\Program Files\\GitHub CLI\\gh.exe\" repo create CMMS --private --description \"Computerized Maintenance Management System - Full-stack CMMS application with FastAPI backend and React frontend\" --source . --remote origin --push)"
+      "Bash(\"C:\\Program Files\\GitHub CLI\\gh.exe\" repo create CMMS --private --description \"Computerized Maintenance Management System - Full-stack CMMS application with FastAPI backend and React frontend\" --source . --remote origin --push)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nInitial commit - CMMS Full-Stack Application\n\nFeatures:\n- FastAPI backend with async SQLAlchemy\n- React + TypeScript frontend with Vite\n- Work Orders with status workflow\n- Asset management with hierarchy\n- Preventive Maintenance scheduling\n- Inventory and parts management\n- User groups for work assignment\n- Multi-tenant organization support\n- Windows installer with auto-prerequisite installation\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")"
     ],
     "deny": [],
     "ask": []
