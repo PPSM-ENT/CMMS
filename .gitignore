@@ -1,0 +1,70 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv/
+.env
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.coverage
+htmlcov/
+*.log
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+
+# Frontend build
+frontend/dist/
+frontend/.vite/
+*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+data/
+
+# Secrets and config (keep .env.example)
+.env
+*.pem
+*.key
+
+# Install artifacts
+install/.cmms_pids
+
+# Self-extracting installer outputs (keep in parent dir)
+CMMS_Installer.ps1
+CMMS_Installer.bat
+
+# OS files
+Thumbs.db
+Desktop.ini
+
+# Windows reserved names (prevent accidental creation)
+nul
+NUL
+con
+CON
+aux
+AUX
+prn
+PRN
