@@ -5,7 +5,7 @@ from typing import Optional, List
 from datetime import datetime, date
 from pydantic import BaseModel, ConfigDict
 
-from app.models.inventory import PartStatus, POStatus
+from app.models.inventory import PartStatus, POStatus, CycleCountStatus, CycleCountFrequencyUnit
 
 
 class PartCategoryCreate(BaseModel):
@@ -319,3 +319,141 @@ class ReceiveLineRequest(BaseModel):
     quantity_received: float
     storeroom_id: Optional[int] = None
     notes: Optional[str] = None
+
+
+# Cycle Counts
+
+class CycleCountCreate(BaseModel):
+    """Create a cycle count session."""
+    storeroom_id: int
+    name: Optional[str] = None
+    description: Optional[str] = None
+    bin_prefix: Optional[str] = None
+    category_ids: Optional[List[int]] = None
+    part_type: Optional[str] = None
+    used_in_last_days: Optional[int] = None
+    usage_start_date: Optional[date] = None
+    usage_end_date: Optional[date] = None
+    include_zero_movement: bool = True
+    transacted_only: bool = False
+    line_limit: Optional[int] = None
+    scheduled_date: Optional[date] = None
+
+
+class CycleCountLineResponse(BaseModel):
+    """Cycle count line response."""
+    id: int
+    cycle_count_id: int
+    part_id: int
+    stock_level_id: int
+    expected_quantity: float
+    counted_quantity: Optional[float] = None
+    variance: Optional[float] = None
+    bin_location: Optional[str] = None
+    needs_recount: bool
+    notes: Optional[str] = None
+    part_number: str
+    part_name: str
+    part_type: str
+    part_category_id: Optional[int] = None
+    last_issue_date: Optional[datetime] = None
+    last_receipt_date: Optional[datetime] = None
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class CycleCountResponse(BaseModel):
+    """Cycle count summary."""
+    id: int
+    name: str
+    description: Optional[str] = None
+    status: CycleCountStatus
+    storeroom_id: int
+    storeroom_name: Optional[str] = None
+    storeroom_code: Optional[str] = None
+    scheduled_date: Optional[date] = None
+    started_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
+    bin_prefix: Optional[str] = None
+    category_ids: Optional[List[int]] = None
+    part_type_filter: Optional[str] = None
+    used_in_last_days: Optional[int] = None
+    usage_start_date: Optional[date] = None
+    usage_end_date: Optional[date] = None
+    include_zero_movement: bool
+    transacted_only: bool
+    line_limit: Optional[int] = None
+    total_lines: int
+    total_variance: float
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class CycleCountDetailResponse(CycleCountResponse):
+    """Cycle count with lines."""
+    lines: List[CycleCountLineResponse] = []
+
+
+class CycleCountRecordLine(BaseModel):
+    """Record a counted line."""
+    line_id: int
+    counted_quantity: float
+    notes: Optional[str] = None
+    needs_recount: Optional[bool] = False
+
+
+class CycleCountRecordRequest(BaseModel):
+    """Record cycle count results."""
+    lines: List[CycleCountRecordLine]
+
+
+class CycleCountPlanCreate(BaseModel):
+    """Create a recurring/scheduled cycle count plan."""
+    name: str
+    description: Optional[str] = None
+    storeroom_id: Optional[int] = None
+    frequency_value: int = 7
+    frequency_unit: CycleCountFrequencyUnit = CycleCountFrequencyUnit.DAYS
+    next_run_date: Optional[date] = None
+    bin_prefix: Optional[str] = None
+    category_ids: Optional[List[int]] = None
+    part_type: Optional[str] = None
+    used_in_last_days: Optional[int] = None
+    usage_start_date: Optional[date] = None
+    usage_end_date: Optional[date] = None
+    include_zero_movement: bool = True
+    transacted_only: bool = False
+    line_limit: Optional[int] = None
+    template_type: Optional[str] = None
+
+
+class CycleCountPlanResponse(BaseModel):
+    """Cycle count plan response."""
+    id: int
+    name: str
+    description: Optional[str] = None
+    storeroom_id: Optional[int] = None
+    is_active: bool
+    is_paused: bool
+    frequency_value: int
+    frequency_unit: CycleCountFrequencyUnit
+    next_run_date: Optional[date] = None
+    last_run_at: Optional[datetime] = None
+    bin_prefix: Optional[str] = None
+    category_ids: Optional[List[int]] = None
+    part_type_filter: Optional[str] = None
+    used_in_last_days: Optional[int] = None
+    usage_start_date: Optional[date] = None
+    usage_end_date: Optional[date] = None
+    include_zero_movement: bool
+    transacted_only: bool
+    line_limit: Optional[int] = None
+    template_type: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)

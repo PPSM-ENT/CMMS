@@ -30,7 +30,11 @@ from app.models.inventory import (
     PurchaseOrder,
     PurchaseOrderLine,
     Vendor,
+    CycleCount,
+    CycleCountLine,
+    CycleCountPlan,
 )
+from app.models.scheduler_control import SchedulerControl
 from app.models.audit_log import AuditLog
 from app.models.user_group import UserGroup
 from app.models.user_group_member import UserGroupMember
@@ -68,6 +72,10 @@ __all__ = [
     "PurchaseOrder",
     "PurchaseOrderLine",
     "Vendor",
+    "CycleCount",
+    "CycleCountLine",
+    "CycleCountPlan",
+    "SchedulerControl",
     "AuditLog",
     "UserGroup",
     "UserGroupMember",

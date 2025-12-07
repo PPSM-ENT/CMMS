@@ -234,6 +234,16 @@ export const getPM = async (id: number) => {
   return response.data;
 };
 
+export const pausePMScheduler = async (paused: boolean) => {
+  const response = await api.post(`/pm/pause`, null, { params: { paused } });
+  return response.data;
+};
+
+export const getPMSchedulerStatus = async () => {
+  const response = await api.get('/pm/status');
+  return response.data;
+};
+
 export const createPM = async (data: Record<string, unknown>) => {
   const response = await api.post('/pm', data);
   return response.data;
@@ -250,6 +260,11 @@ export const getDuePMs = async (daysAhead = 7) => {
 };
 
 // Inventory
+export const getPartCategories = async () => {
+  const response = await api.get('/inventory/categories');
+  return response.data;
+};
+
 export const getParts = async (params?: Record<string, unknown>) => {
   const response = await api.get('/inventory/parts', { params });
   return response.data;
@@ -312,6 +327,54 @@ export const getStoreroomStock = async (storeroomId: number) => {
   return response.data;
 };
 
+export const getCycleCounts = async (params?: Record<string, unknown>) => {
+  const response = await api.get('/inventory/cycle-counts', { params });
+  return response.data;
+};
+
+export const createCycleCount = async (data: Record<string, unknown>) => {
+  const response = await api.post('/inventory/cycle-counts', data);
+  return response.data;
+};
+
+export const getCycleCount = async (id: number) => {
+  const response = await api.get(`/inventory/cycle-counts/${id}`);
+  return response.data;
+};
+
+export const recordCycleCount = async (
+  id: number,
+  lines: { line_id: number; counted_quantity: number; notes?: string; needs_recount?: boolean }[]
+) => {
+  const response = await api.post(`/inventory/cycle-counts/${id}/record`, { lines });
+  return response.data;
+};
+
+export const getCycleCountPlans = async () => {
+  const response = await api.get('/inventory/cycle-count-plans');
+  return response.data;
+};
+
+export const createCycleCountPlan = async (data: Record<string, unknown>) => {
+  const response = await api.post('/inventory/cycle-count-plans', data);
+  return response.data;
+};
+
+export const pauseCycleCountPlan = async (id: number, paused: boolean) => {
+  const response = await api.post(`/inventory/cycle-count-plans/${id}/pause`, null, { params: { paused } });
+  return response.data;
+};
+
+export const pauseCycleCounts = async (paused: boolean) => {
+  const response = await api.post('/inventory/cycle-counts/pause', null, { params: { paused } });
+  return response.data;
+};
+
+export const getCycleCountSchedulerStatus = async () => {
+  const response = await api.get('/inventory/cycle-counts/status');
+  return response.data;
+};
+
 // Reports
 export const getWorkOrderSummary = async (startDate?: string, endDate?: string) => {
   const response = await api.get('/reports/work-orders/summary', {
@@ -342,6 +405,63 @@ export const getMTBFMTTR = async (assetId?: number) => {
     params: { asset_id: assetId },
   });
   return response.data;
+};
+
+// Report Generation
+export const getReportTypes = async () => {
+  const response = await api.get('/reports/report-types');
+  return response.data;
+};
+
+export interface ReportParams {
+  format?: 'json' | 'pdf' | 'excel' | 'csv';
+  start_date?: string;
+  end_date?: string;
+  asset_id?: number;
+  status?: string;
+  priority?: string;
+  work_type?: string;
+  assigned_to?: number;
+  criticality?: string;
+  storeroom_id?: number;
+}
+
+export const generateReport = async (reportType: string, params: ReportParams = {}) => {
+  const response = await api.get(`/reports/generate/${reportType}`, {
+    params,
+    responseType: params.format && params.format !== 'json' ? 'blob' : 'json',
+  });
+  return response;
+};
+
+export const downloadReport = async (reportType: string, params: ReportParams = {}) => {
+  const response = await api.get(`/reports/generate/${reportType}`, {
+    params,
+    responseType: 'blob',
+  });
+
+  // Get filename from content-disposition header or generate one
+  const contentDisposition = response.headers['content-disposition'];
+  let filename = `${reportType}_report`;
+  if (contentDisposition) {
+    const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
+    if (filenameMatch) {
+      filename = filenameMatch[1];
+    }
+  } else {
+    const ext = params.format === 'pdf' ? 'pdf' : params.format === 'excel' ? 'xlsx' : 'csv';
+    filename = `${reportType}_${params.start_date || 'report'}_${params.end_date || ''}.${ext}`;
+  }
+
+  // Create download link
+  const url = window.URL.createObjectURL(new Blob([response.data]));
+  const link = document.createElement('a');
+  link.href = url;
+  link.setAttribute('download', filename);
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(url);
 };
 
 // Users

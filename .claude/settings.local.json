@@ -11,7 +11,16 @@
       "Bash(\"C:\\Program Files\\GitHub CLI\\gh.exe\" auth status)",
       "Bash(\"C:\\Program Files\\GitHub CLI\\gh.exe\" auth login --web --git-protocol https)",
       "Bash(\"C:\\Program Files\\GitHub CLI\\gh.exe\" repo create CMMS --private --description \"Computerized Maintenance Management System - Full-stack CMMS application with FastAPI backend and React frontend\" --source . --remote origin --push)",
-      "Bash(git commit -m \"$(cat <<''EOF''\nInitial commit - CMMS Full-Stack Application\n\nFeatures:\n- FastAPI backend with async SQLAlchemy\n- React + TypeScript frontend with Vite\n- Work Orders with status workflow\n- Asset management with hierarchy\n- Preventive Maintenance scheduling\n- Inventory and parts management\n- User groups for work assignment\n- Multi-tenant organization support\n- Windows installer with auto-prerequisite installation\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")"
+      "Bash(git commit -m \"$(cat <<''EOF''\nInitial commit - CMMS Full-Stack Application\n\nFeatures:\n- FastAPI backend with async SQLAlchemy\n- React + TypeScript frontend with Vite\n- Work Orders with status workflow\n- Asset management with hierarchy\n- Preventive Maintenance scheduling\n- Inventory and parts management\n- User groups for work assignment\n- Multi-tenant organization support\n- Windows installer with auto-prerequisite installation\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git commit -m \"$(cat <<''EOF''\nImprove installer - fully automated with verbose output\n\n- Rewrote install.ps1 with step-by-step progress display\n- Auto-installs Python 3.12 and Node.js 20 if missing\n- Shows real-time pip and npm install output\n- Verifies all packages installed correctly\n- Updated start.ps1 to verify installation before starting\n- Better error handling and user feedback throughout\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git push:*)",
+      "Bash(find:*)",
+      "Bash(cmd /c \"cd /d F:\\SteamRIP\\CMMS\\frontend && npx tsc --noEmit 2>&1\")",
+      "Bash(cmd /c \"cd /d F:\\SteamRIP\\CMMS\\backend && venv\\Scripts\\pip install reportlab==4.2.0 openpyxl==3.1.2\")",
+      "Bash(cmd /c \"cd /d F:\\SteamRIP\\CMMS\\backend && venv\\Scripts\\python -c \"\"import reportlab; print(''reportlab installed:'', reportlab.Version)\"\"\")",
+      "Bash(cmd /c \"cd /d F:\\SteamRIP\\CMMS\\backend && venv\\Scripts\\pip install reportlab openpyxl 2>&1\")",
+      "Bash(F:\\SteamRIP\\CMMS\\backend\\venv\\Scripts\\pip.exe install:*)",
+      "Bash(powershell -Command \"cd ''F:\\SteamRIP\\CMMS\\backend''; .\\venv\\Scripts\\pip.exe install reportlab openpyxl\")"
     ],
     "deny": [],
     "ask": []

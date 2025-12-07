@@ -19,6 +19,7 @@ from app.models.preventive_maintenance import (
 )
 from app.models.work_order import WorkOrder, WorkOrderTask, WorkOrderStatus, WorkOrderType
 from app.models.asset import Meter
+from app.models.scheduler_control import SchedulerControl
 from sqlalchemy import func
 
 logger = logging.getLogger(__name__)
@@ -31,6 +32,11 @@ class PMScheduler:
 
     def __init__(self, session_maker: async_sessionmaker[AsyncSession]):
         self.session_maker = session_maker
+        self._controls_cache: dict[int, SchedulerControl] = {}
+
+    async def _load_controls(self, db: AsyncSession) -> None:
+        result = await db.execute(select(SchedulerControl))
+        self._controls_cache = {row.organization_id: row for row in result.scalars().all()}
 
     async def process_due_pms(self) -> List[int]:
         """
@@ -40,6 +46,7 @@ class PMScheduler:
         generated_wos = []
 
         async with self.session_maker() as db:
+            await self._load_controls(db)
             # Get all active PMs due for generation
             today = date.today()
 
@@ -55,6 +62,9 @@ class PMScheduler:
             pms = result.scalars().all()
 
             for pm in pms:
+                control = self._controls_cache.get(pm.organization_id)
+                if control and control.pause_pm:
+                    continue
                 should_generate = await self._should_generate_wo(pm, today, db)
 
                 if should_generate:

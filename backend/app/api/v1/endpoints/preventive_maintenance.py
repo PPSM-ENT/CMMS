@@ -19,6 +19,7 @@ from app.models.preventive_maintenance import (
     PMFrequencyUnit,
 )
 from app.models.work_order import WorkOrder, WorkOrderTask, WorkOrderStatus, WorkOrderType
+from app.models.scheduler_control import SchedulerControl
 from app.schemas.preventive_maintenance import (
     PMCreate,
     PMUpdate,
@@ -370,6 +371,48 @@ async def generate_work_order(
         "wo_number": wo_number,
         "next_due_date": pm.next_due_date.isoformat() if pm.next_due_date else None,
     }
+
+
+async def _get_or_create_scheduler_control(db, org_id: int) -> SchedulerControl:
+    result = await db.execute(
+        select(SchedulerControl).where(SchedulerControl.organization_id == org_id)
+    )
+    control = result.scalar_one_or_none()
+    if not control:
+        control = SchedulerControl(organization_id=org_id)
+        db.add(control)
+        await db.flush()
+    return control
+
+
+@router.post("/pause", response_model=MessageResponse)
+async def pause_pm_scheduler(
+    db: DBSession,
+    current_user: CurrentUser,
+    paused: bool = Query(True, description="Pause or resume scheduled PM work order generation"),
+) -> Any:
+    """
+    Pause or resume PM scheduler for this organization.
+    """
+    control = await _get_or_create_scheduler_control(db, current_user.organization_id)
+    control.pause_pm = paused
+    await db.commit()
+    return MessageResponse(message="PM scheduler paused" if paused else "PM scheduler resumed")
+
+
+@router.get("/status", response_model=dict)
+async def get_pm_scheduler_status(
+    db: DBSession,
+    current_user: CurrentUser,
+) -> Any:
+    """
+    Get pause status for PM scheduler.
+    """
+    result = await db.execute(
+        select(SchedulerControl).where(SchedulerControl.organization_id == current_user.organization_id)
+    )
+    control = result.scalar_one_or_none()
+    return {"pause_pm": bool(control.pause_pm) if control else False}
 
 
 # Job Plan endpoints

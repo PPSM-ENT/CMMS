@@ -44,6 +44,21 @@ class TransactionType(str, enum.Enum):
     SCRAP = "SCRAP"  # Write-off
 
 
+class CycleCountStatus(str, enum.Enum):
+    """Cycle count status."""
+    PLANNED = "PLANNED"
+    IN_PROGRESS = "IN_PROGRESS"
+    COMPLETED = "COMPLETED"
+    CANCELLED = "CANCELLED"
+
+
+class CycleCountFrequencyUnit(str, enum.Enum):
+    """Cycle count recurrence units."""
+    DAYS = "DAYS"
+    WEEKS = "WEEKS"
+    MONTHS = "MONTHS"
+
+
 class PartCategory(Base, AuditMixin, TenantMixin):
     """
     Category for organizing parts.
@@ -429,6 +444,136 @@ class PurchaseOrderLine(Base, AuditMixin):
 
     def __repr__(self) -> str:
         return f"<PurchaseOrderLine(po_id={self.purchase_order_id}, line={self.line_number})>"
+
+
+class CycleCount(Base, AuditMixin, TenantMixin):
+    """
+    Cycle count session for storerooms.
+    """
+
+    __tablename__ = "cycle_counts"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    status: Mapped[CycleCountStatus] = mapped_column(
+        SQLEnum(CycleCountStatus), default=CycleCountStatus.PLANNED, nullable=False, index=True
+    )
+
+    storeroom_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("storerooms.id"), nullable=False, index=True
+    )
+
+    scheduled_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    started_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    # Selection filters captured on creation
+    bin_prefix: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    category_ids: Mapped[Optional[list]] = mapped_column(JSON, nullable=True)
+    part_type_filter: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    used_in_last_days: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    usage_start_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    usage_end_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    include_zero_movement: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    transacted_only: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    line_limit: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+
+    total_lines: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    total_variance: Mapped[float] = mapped_column(Float, default=0, nullable=False)
+
+    storeroom: Mapped["Storeroom"] = relationship("Storeroom")
+    lines: Mapped[List["CycleCountLine"]] = relationship(
+        "CycleCountLine", back_populates="cycle_count", cascade="all, delete-orphan"
+    )
+
+    def __repr__(self) -> str:
+        return f"<CycleCount(id={self.id}, storeroom_id={self.storeroom_id}, status={self.status})>"
+
+
+class CycleCountLine(Base, AuditMixin, TenantMixin):
+    """
+    Individual line items within a cycle count.
+    """
+
+    __tablename__ = "cycle_count_lines"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    cycle_count_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("cycle_counts.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    part_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("parts.id"), nullable=False, index=True
+    )
+    stock_level_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("stock_levels.id"), nullable=False, index=True
+    )
+
+    expected_quantity: Mapped[float] = mapped_column(Float, nullable=False)
+    counted_quantity: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    variance: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    bin_location: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    needs_recount: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    # Snapshots for reporting
+    part_number: Mapped[str] = mapped_column(String(100), nullable=False)
+    part_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    part_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    part_category_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    last_issue_date: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_receipt_date: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    cycle_count: Mapped["CycleCount"] = relationship("CycleCount", back_populates="lines")
+    part: Mapped["Part"] = relationship("Part")
+    stock_level: Mapped["StockLevel"] = relationship("StockLevel")
+
+    def __repr__(self) -> str:
+        return f"<CycleCountLine(id={self.id}, part_id={self.part_id}, expected={self.expected_quantity})>"
+
+
+class CycleCountPlan(Base, AuditMixin, TenantMixin):
+    """
+    Scheduled/recurring cycle count plan.
+    """
+
+    __tablename__ = "cycle_count_plans"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    storeroom_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("storerooms.id"), nullable=True, index=True
+    )
+
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    is_paused: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+
+    frequency_value: Mapped[int] = mapped_column(Integer, default=7, nullable=False)
+    frequency_unit: Mapped[CycleCountFrequencyUnit] = mapped_column(
+        SQLEnum(CycleCountFrequencyUnit), default=CycleCountFrequencyUnit.DAYS, nullable=False
+    )
+    next_run_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    last_run_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    # Filters same as cycle count
+    bin_prefix: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    category_ids: Mapped[Optional[list]] = mapped_column(JSON, nullable=True)
+    part_type_filter: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    used_in_last_days: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    usage_start_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    usage_end_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    include_zero_movement: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    transacted_only: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    line_limit: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+
+    template_type: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)  # For defaults
+
+    storeroom: Mapped[Optional["Storeroom"]] = relationship("Storeroom")
+
+    def __repr__(self) -> str:
+        return f"<CycleCountPlan(id={self.id}, active={self.is_active}, paused={self.is_paused})>"
 
 
 # Import for type hints

@@ -13,6 +13,7 @@ from app.core.config import get_settings
 from app.core.database import init_db, async_session_maker
 from app.api.v1.router import api_router
 from app.services.pm_scheduler import run_pm_scheduler
+from app.services.cycle_count_scheduler import run_cycle_count_scheduler
 
 settings = get_settings()
 
@@ -38,15 +39,22 @@ async def lifespan(app: FastAPI):
 
     # Start PM scheduler in background
     scheduler_task = asyncio.create_task(run_pm_scheduler(async_session_maker))
+    cycle_count_task = asyncio.create_task(run_cycle_count_scheduler(async_session_maker))
     logger.info("PM scheduler started")
+    logger.info("Cycle count scheduler started")
 
     yield
 
     # Shutdown
     logger.info("Shutting down CMMS API...")
     scheduler_task.cancel()
+    cycle_count_task.cancel()
     try:
         await scheduler_task
+    except asyncio.CancelledError:
+        pass
+    try:
+        await cycle_count_task
     except asyncio.CancelledError:
         pass
 
