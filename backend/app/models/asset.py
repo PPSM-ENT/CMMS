@@ -98,6 +98,9 @@ class Asset(Base, AuditMixin, TenantMixin):
     # QR/Barcode
     barcode: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, index=True)
 
+    # FMEA Risk Priority Number
+    rpn_score: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, index=True)  # 1-1000 scale
+
     # Relationships
     organization: Mapped["Organization"] = relationship("Organization", back_populates="assets")
     location: Mapped[Optional["Location"]] = relationship("Location", back_populates="assets")

@@ -396,6 +396,22 @@ async def seed_demo_data(db: AsyncSession):
     for idx, line_loc in enumerate(line_locations, start=1):
         for template in line_asset_templates:
             age_offset = random.randint(120, 1800)
+            # Calculate FMEA RPN based on asset type and criticality
+            base_rpn = {
+                "CRITICAL": random.randint(400, 800),
+                "HIGH": random.randint(200, 500),
+                "MEDIUM": random.randint(80, 250),
+                "LOW": random.randint(20, 100),
+            }[template["criticality"].value]
+
+            # Add some variation and equipment-specific risk
+            rpn_modifier = {
+                "pump": random.randint(-50, 100),
+                "motor": random.randint(-30, 80),
+                "conveyor": random.randint(-20, 60),
+                "sensor": random.randint(-80, 20),
+            }.get(template["asset_type"].lower(), 0)
+
             asset = Asset(
                 organization_id=org.id,
                 asset_num=f"{line_loc.code}-{template['suffix']}",
@@ -411,6 +427,7 @@ async def seed_demo_data(db: AsyncSession):
                 purchase_date=purchase_start + timedelta(days=age_offset),
                 purchase_price=template["base_price"] + random.randint(-15000, 15000),
                 install_date=purchase_start + timedelta(days=age_offset + 30),
+                rpn_score=min(1000, max(1, base_rpn + rpn_modifier)),  # Clamp to 1-1000 range
                 created_by_id=admin_user.id,
             )
             asset.update_hierarchy()
@@ -481,6 +498,24 @@ async def seed_demo_data(db: AsyncSession):
     ]
 
     for data in support_assets_data:
+        # Calculate RPN for support assets based on criticality and equipment type
+        base_rpn = {
+            AssetCriticality.CRITICAL: random.randint(500, 900),
+            AssetCriticality.HIGH: random.randint(300, 700),
+            AssetCriticality.MEDIUM: random.randint(150, 400),
+            AssetCriticality.LOW: random.randint(50, 200),
+        }[data["criticality"]]
+
+        # Equipment-specific risk adjustments
+        equipment_modifier = {
+            "compressor": random.randint(50, 150),
+            "boiler": random.randint(100, 200),
+            "chiller": random.randint(50, 120),
+            "pasteurizer": random.randint(80, 160),
+            "palletizer": random.randint(60, 140),
+            "conveyor": random.randint(40, 100),
+        }.get(data["asset_type"].lower().split()[0], 0)
+
         asset = Asset(
             organization_id=org.id,
             asset_num=data["asset_num"],
@@ -496,6 +531,7 @@ async def seed_demo_data(db: AsyncSession):
             purchase_date=date.today() - timedelta(days=random.randint(365, 2000)),
             purchase_price=data["purchase_price"],
             install_date=date.today() - timedelta(days=random.randint(200, 400)),
+            rpn_score=min(1000, max(1, base_rpn + equipment_modifier)),
             created_by_id=admin_user.id,
         )
         asset.update_hierarchy()

@@ -1,13 +1,32 @@
+from alembic import context
+
+# Import your models and Base here
+import asyncio
+import os
+import sys
 from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config, pool
 from sqlalchemy import create_engine
+from sqlalchemy.ext.asyncio import create_async_engine
 
-from alembic import context
+# Add the app directory to Python path
+sys.path.insert(0, os.path.dirname(__file__))
 
-# Import your models and Base here
 from app.core.database import Base
-from app.models import organization, user, location, asset, inventory, preventive_maintenance, work_order, audit_log, user_group, user_group_member  # noqa: F401
+from app.models import (
+    organization,  # noqa: F401
+    user,  # noqa: F401
+    location,  # noqa: F401
+    asset,  # noqa: F401
+    inventory,  # noqa: F401
+    preventive_maintenance,  # noqa: F401
+    work_order,  # noqa: F401
+    audit_log,  # noqa: F401
+    user_group,  # noqa: F401
+    user_group_member,  # noqa: F401
+    scheduler_control,  # noqa: F401
+)
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -20,14 +39,12 @@ if config.config_file_name is not None:
 
 # add your model's MetaData object here
 # for 'autogenerate' support
-# from myapp import mymodel
-# target_metadata = mymodel.Base.metadata
 target_metadata = Base.metadata
 
-# other values from the config, defined by the needs of env.py,
-# can be acquired:
-# my_important_option = config.get_main_option("my_important_option")
-# ... etc.
+# Get database URL from environment
+database_url = os.getenv("DATABASE_URL")
+if database_url:
+    config.set_main_option("sqlalchemy.url", database_url)
 
 def run_migrations_offline():
     """Run migrations in 'offline' mode.
@@ -59,8 +76,14 @@ def run_migrations_online():
     and associate a connection with the context.
 
     """
+    # Handle both sync and async URLs
+    url = config.get_main_option("sqlalchemy.url")
+    if url and url.startswith("postgresql+asyncpg://"):
+        # Convert async URL to sync for alembic
+        url = url.replace("postgresql+asyncpg://", "postgresql://")
+
     connectable = create_engine(
-        config.get_main_option("sqlalchemy.url"),
+        url,
         poolclass=pool.NullPool,
     )
 
