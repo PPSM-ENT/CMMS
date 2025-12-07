@@ -676,6 +676,37 @@ async def create_cycle_count(
     return CycleCountDetailResponse(**payload)
 
 
+# Cycle count control endpoints (must be defined before parameterized routes)
+@router.post("/cycle-counts/pause", response_model=MessageResponse)
+async def pause_cycle_counts(
+    db: DBSession,
+    current_user: CurrentUser,
+    paused: bool = Query(True, description="Pause or resume all scheduled cycle counts"),
+) -> Any:
+    """
+    Pause or resume scheduled cycle count generation for this organization.
+    """
+    control = await _get_or_create_scheduler_control(db, current_user.organization_id)
+    control.pause_cycle_counts = paused
+    await db.commit()
+    return MessageResponse(message="Cycle counts paused" if paused else "Cycle counts resumed")
+
+
+@router.get("/cycle-counts/status", response_model=dict)
+async def get_cycle_count_scheduler_status(
+    db: DBSession,
+    current_user: CurrentUser,
+) -> Any:
+    """
+    Get pause status for cycle count scheduler.
+    """
+    result = await db.execute(
+        select(SchedulerControl).where(SchedulerControl.organization_id == current_user.organization_id)
+    )
+    control = result.scalar_one_or_none()
+    return {"pause_cycle_counts": bool(control.pause_cycle_counts) if control else False}
+
+
 @router.get("/cycle-counts/{cycle_count_id}", response_model=CycleCountDetailResponse)
 async def get_cycle_count(
     db: DBSession,
@@ -931,36 +962,6 @@ async def _get_or_create_scheduler_control(db, org_id: int) -> SchedulerControl:
         db.add(control)
         await db.flush()
     return control
-
-
-@router.post("/cycle-counts/pause", response_model=MessageResponse)
-async def pause_cycle_counts(
-    db: DBSession,
-    current_user: CurrentUser,
-    paused: bool = Query(True, description="Pause or resume all scheduled cycle counts"),
-) -> Any:
-    """
-    Pause or resume scheduled cycle count generation for this organization.
-    """
-    control = await _get_or_create_scheduler_control(db, current_user.organization_id)
-    control.pause_cycle_counts = paused
-    await db.commit()
-    return MessageResponse(message="Cycle counts paused" if paused else "Cycle counts resumed")
-
-
-@router.get("/cycle-counts/status", response_model=dict)
-async def get_cycle_count_scheduler_status(
-    db: DBSession,
-    current_user: CurrentUser,
-) -> Any:
-    """
-    Get pause status for cycle count scheduler.
-    """
-    result = await db.execute(
-        select(SchedulerControl).where(SchedulerControl.organization_id == current_user.organization_id)
-    )
-    control = result.scalar_one_or_none()
-    return {"pause_cycle_counts": bool(control.pause_cycle_counts) if control else False}
 
 
 # Vendor endpoints
