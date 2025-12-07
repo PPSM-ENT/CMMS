@@ -119,16 +119,6 @@ jobs:
         cache-from: type=gha
         cache-to: type=gha,mode=max
 
-    - name: Build nginx image
-      uses: docker/build-push-action@v5
-      with:
-        context: .
-        file: ./nginx/Dockerfile
-        push: false
-        tags: cmms-nginx:test
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
-
   security-scan:
     runs-on: ubuntu-latest
     needs: [docker-build]
